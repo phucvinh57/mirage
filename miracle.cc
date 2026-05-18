@@ -1,15 +1,17 @@
 #include <miral/runner.h>
 #include <miral/append_keyboard_event_filter.h>
+#include <miral/config_file.h>
+#include <miral/configuration_option.h>
 #include <miral/external_client.h>
 #include <miral/minimal_window_manager.h>
 #include <miral/set_window_management_policy.h>
 #include <miral/toolkit_event.h>
 #include <miral/decorations.h>
-#include <miral/configuration_option.h>
 #include <mir/log.h>
 
+#include "miracle_config.h"
+
 #include <cstdlib>
-#include <filesystem>
 
 using namespace miral;
 using namespace miral::toolkit;
@@ -17,11 +19,20 @@ using namespace miral::toolkit;
 int main(int argc, char const *argv[])
 {
     ExternalClientLauncher launcher;
-
     MirRunner runner{argc, argv, "miracle.config"};
-    std::string terminal_cmd{"x-terminal-emulator"};
+    MiracleConfig config;
 
-    auto const keybinds = [&launcher, &runner, &terminal_cmd](MirKeyboardEvent const *ev)
+    // Load configuration from file, and reload on changes.
+    ConfigFile{
+        runner,
+        runner.config_file(),
+        ConfigFile::Mode::reload_on_change,
+        [&config](std::istream &stream, std::filesystem::path const &path)
+        {
+            config.load(stream, path);
+        }};
+
+    auto const keybinds = [&launcher, &runner, &config](MirKeyboardEvent const *ev)
     {
         // Skip anything but down presses
         if (mir_keyboard_event_action(ev) != mir_keyboard_action_down)
@@ -39,7 +50,7 @@ int main(int argc, char const *argv[])
             return true;
         case XKB_KEY_t:
         case XKB_KEY_T:
-            launcher.launch(terminal_cmd);
+            launcher.launch(config.get_one("terminal").value_or("x-terminal-emulator"));
             return true;
         default:
             return false;
@@ -47,15 +58,18 @@ int main(int argc, char const *argv[])
         }
     };
 
-    auto run_startup_apps = [&launcher](std::vector<std::string> const &commands)
+    auto run_startup_apps = [&launcher, &config](std::vector<std::string> const &commands)
     {
-        for (auto const &command : commands)
+        auto startup_apps = config.get("startup-app");
+        if (!startup_apps.has_value())
+            return;
+        for (auto const &command : startup_apps.value())
             launcher.launch(command);
     };
 
     return runner.run_with({set_window_management_policy<MinimalWindowManager>(),
                             launcher,
                             miral::AppendKeyboardEventFilter(keybinds),
-                            miral::ConfigurationOption{run_startup_apps, "startup-app", "Commands to run on startup"},
+                            ConfigurationOption{run_startup_apps, "startup-app", "Commands to run on startup (may be specified multiple times)"},
                             miral::Decorations::always_csd()});
 }

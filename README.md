@@ -1,8 +1,8 @@
 # miracle
 
-`miracle` is a small compositor project for learning how `Mir` and `Miriway` are put together.
+`miracle` is a small compositor project for learning how [`Mir`](https://github.com/canonical/mir) and [`Miriway`](https://github.com/Miriway/Miriway) are put together.
 
-The goal here is understanding, experimentation, and building familiarity with Miral-based compositor structure. Its intention is not to copy Miriway's features or become a production-ready compositor.
+The goal here is understanding, experimentation, and building familiarity with Miral-based compositor structure. It is not intended to copy Miriway's features or to become a production-ready Linux desktop compositor.
 
 ## Project scope
 
@@ -43,7 +43,3 @@ This comparison is between my project, `miracle`, and `Miriway`:
 | Decoration policy | Configurable | Fixed `prefer_csd()` | Miriway supports multiple decoration strategies; `miracle` currently hardcodes one. |
 | Session startup/shutdown hooks | Yes | No | Miriway supports environment-driven session hooks. |
 | Packaging/session integration | Yes | Minimal | Miriway includes desktop/session/snap/systemd integration; `miracle` is currently much smaller in scope. |
-
-- running with a minimal Mir window management policy
-
-That smaller scope is deliberate: the project is primarily a learning vehicle for understanding Mir and Miriway, not a production desktop shell.

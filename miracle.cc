@@ -7,11 +7,11 @@
 #include <miral/set_window_management_policy.h>
 #include <miral/toolkit_event.h>
 #include <miral/decorations.h>
+#include <cstdlib>
 #include <mir/log.h>
 
 #include "miracle_config.h"
-
-#include <cstdlib>
+#include "miracle_keybind.h"
 
 using namespace miral;
 using namespace miral::toolkit;
@@ -21,6 +21,8 @@ int main(int argc, char const *argv[])
     ExternalClientLauncher launcher;
     MirRunner runner{argc, argv, "miracle.config"};
     MiracleConfig config;
+    KeybindConfig keybind_config;
+    config.add_dependency(&keybind_config);
 
     // Load configuration from file, and reload on changes.
     ConfigFile{
@@ -32,30 +34,9 @@ int main(int argc, char const *argv[])
             config.load(stream, path);
         }};
 
-    auto const keybinds = [&launcher, &runner, &config](MirKeyboardEvent const *ev)
+    auto const keybinds = [&launcher, &runner, &keybind_config](MirKeyboardEvent const *ev)
     {
-        // Skip anything but down presses
-        if (mir_keyboard_event_action(ev) != mir_keyboard_action_down)
-            return false;
-
-        // Ctrl+Alt must be pressed
-        MirInputEventModifiers mods = mir_keyboard_event_modifiers(ev);
-        if (!(mods & mir_input_event_modifier_alt) || !(mods & mir_input_event_modifier_ctrl))
-            return false;
-
-        switch (mir_keyboard_event_keysym(ev))
-        {
-        case XKB_KEY_BackSpace:
-            runner.stop();
-            return true;
-        case XKB_KEY_t:
-        case XKB_KEY_T:
-            launcher.launch(config.get_one("terminal").value_or("x-terminal-emulator"));
-            return true;
-        default:
-            return false;
-            break;
-        }
+        return keybind_config.handle(ev, runner, launcher);
     };
 
     auto run_startup_apps = [&launcher, &config](std::vector<std::string> const &commands)

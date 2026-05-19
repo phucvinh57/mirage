@@ -3,6 +3,7 @@
 #include <mir/log.h>
 
 #include <cstddef>
+#include <istream>
 #include <string_view>
 #include <utility>
 
@@ -21,7 +22,6 @@ auto trim(std::string_view value) -> std::string_view
 
 void MiracleConfig::set(std::string key, Values values)
 {
-    std::lock_guard lock{mutex};
     data[std::move(key)] = std::move(values);
 }
 
@@ -36,8 +36,6 @@ void MiracleConfig::set(std::string key, std::string value)
 
 auto MiracleConfig::get(std::string const& key) const -> std::optional<Values>
 {
-    std::lock_guard lock{mutex};
-
     if (auto const it = data.find(key); it != data.end())
         return it->second;
 
@@ -54,9 +52,26 @@ auto MiracleConfig::get_one(std::string const& key) const -> std::optional<std::
     return std::nullopt;
 }
 
+auto MiracleConfig::search_prefix(std::string const& prefix) const -> std::vector<std::pair<std::string, Values>>
+{
+    std::vector<std::pair<std::string, Values>> results;
+    auto const prefix_view = std::string_view{prefix};
+
+    for (auto it = this->data.lower_bound(prefix); it != data.end(); ++it)
+    {
+        if (!std::string_view{it->first}.starts_with(prefix_view))
+            break;
+
+        results.emplace_back(it->first, it->second);
+    }
+
+    return results;
+}
+
 void MiracleConfig::load(std::istream& stream, std::filesystem::path const& path)
 {
     Data next;
+    std::vector<DependencyConfig*> dependencies_to_reload;
     std::string line;
     std::size_t line_number = 0;
 
@@ -95,6 +110,16 @@ void MiracleConfig::load(std::istream& stream, std::filesystem::path const& path
             values.emplace_back(value);
     }
 
-    std::lock_guard lock{mutex};
     data = std::move(next);
+
+    mir::log_info("Loaded config from %s with %zu entries", path.c_str(), data.size());
+    for (auto* dependency : dependencies)
+        dependency->load(this);
+    mir::log_info("Reloaded dependencies for config from %s", path.c_str());
+}
+
+auto MiracleConfig::add_dependency(DependencyConfig* dependency) -> MiracleConfig*
+{
+    dependencies.push_back(dependency);
+    return this;
 }

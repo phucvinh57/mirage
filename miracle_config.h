@@ -2,12 +2,19 @@
 #define MIRACLE_CONFIG_H
 
 #include <filesystem>
-#include <istream>
+#include <iosfwd>
 #include <map>
-#include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
-#include <optional>
+
+class MiracleConfig;
+
+class DependencyConfig
+{
+public:
+    virtual void load(MiracleConfig*) = 0;
+};
 
 class MiracleConfig
 {
@@ -20,11 +27,13 @@ public:
 
     auto get(std::string const &key) const -> std::optional<Values>;
     auto get_one(std::string const &key) const -> std::optional<std::string>;
+    auto search_prefix(std::string const &prefix) const -> std::vector<std::pair<std::string, Values>>;
 
     void load(std::istream &stream, std::filesystem::path const &path);
+    auto add_dependency(DependencyConfig* dependency) -> MiracleConfig*;
 
 private:
-    mutable std::mutex mutex;
+    std::vector<DependencyConfig*> dependencies;
     Data data;
 };
 

@@ -44,14 +44,6 @@ This comparison is between my project, `miracle`, and `Miriway`:
 | Session startup/shutdown hooks | Yes | No | Miriway supports environment-driven session hooks. |
 | Packaging/session integration | Yes | Minimal | Miriway includes desktop/session/snap/systemd integration; `miracle` is currently much smaller in scope. |
 
-## Current state of miracle
-
-Right now `miracle` is intentionally much smaller than Miriway. It already demonstrates a few useful Miral building blocks:
-
-- loading a config file and reloading it on change
-- launching startup applications
-- parsing config-driven keyboard shortcuts
-- handling a small internal command set
 - running with a minimal Mir window management policy
 
 That smaller scope is deliberate: the project is primarily a learning vehicle for understanding Mir and Miriway, not a production desktop shell.

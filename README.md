@@ -10,6 +10,23 @@ The goal here is understanding, experimentation, and building familiarity with M
 - Keep the code compact enough to study and change easily.
 - Prefer clarity and experimentation over completeness.
 
+## How to run
+
+To build `miracle`:
+
+```bash
+mkdir -p build
+cd build
+cmake ..
+make -j$(nproc)
+```
+
+To run:
+
+```bash
+WAYLAND_DISPLAY=wayland-99 ./miracle
+```
+
 ## Current comparison with Miriway
 
 This comparison is between my project, `miracle`, and `Miriway`:
@@ -17,7 +34,7 @@ This comparison is between my project, `miracle`, and `Miriway`:
 | Feature | Miriway | miracle | Notes |
 |---|---|---|---|
 | Base compositor | Yes | Yes | Both are Mir/Miral compositors. |
-| Window management policy | Custom floating policy | `MinimalWindowManager` | `miracle` uses the stock minimal policy; Miriway adds its own window management behavior. |
+| Window management policy | Custom floating policy | `FloatingWindowManager` | `miracle` uses Miral's stock floating policy; Miriway adds its own window management behavior on top of Miral. |
 | Startup apps | Yes | Yes | `miracle` supports `startup-app=...`; Miriway also supports startup/session hooks and shell components. |
 | Config reload on change | Yes | Yes | Both reload config at runtime. |
 | Custom keybindings | Yes | Yes | Both support config-driven shortcuts. |

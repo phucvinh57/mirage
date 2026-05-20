@@ -4,7 +4,11 @@ set(CMAKE_CXX_STANDARD 23)
 
 include(FindPkgConfig)
 pkg_check_modules(MIRAL miral REQUIRED IMPORTED_TARGET)
-add_executable(miracle miracle.cc miracle_config.cc miracle_keybind.cc)
+add_executable(miracle
+    miracle.cc
+    miracle_config.cc
+    miracle_keybind.cc
+    miracle_window_manager.cpp)
 target_compile_definitions(miracle PRIVATE MIR_LOG_COMPONENT="miracle")
 set(MIRACLE_HOME_CONFIG "$ENV{HOME}/.config/miracle.config")
 add_custom_command(

@@ -3,15 +3,16 @@
 #include <miral/config_file.h>
 #include <miral/configuration_option.h>
 #include <miral/external_client.h>
-#include <miral/minimal_window_manager.h>
 #include <miral/set_window_management_policy.h>
 #include <miral/toolkit_event.h>
 #include <miral/decorations.h>
 #include <cstdlib>
 #include <mir/log.h>
+#include <miral/x11_support.h>
 
 #include "miracle_config.h"
 #include "miracle_keybind.h"
+#include "miracle_window_manager.h"
 
 using namespace miral;
 using namespace miral::toolkit;
@@ -39,18 +40,19 @@ int main(int argc, char const *argv[])
         return keybind_config.handle(ev, runner, launcher);
     };
 
-    auto run_startup_apps = [&launcher, &config](std::vector<std::string> const &commands)
+    auto run_startup_apps = [&launcher, &config]()
     {
-        auto startup_apps = config.get("startup-app");
-        if (!startup_apps)
+        auto apps = config.get("startup-app");
+        if (!apps)
             return;
-        for (auto const &command : startup_apps.value())
+        for (auto const &command : apps.value())
             launcher.launch(command);
     };
+    runner.add_start_callback(run_startup_apps);
 
-    return runner.run_with({set_window_management_policy<MinimalWindowManager>(),
+    return runner.run_with({X11Support{},
+                            set_window_management_policy<MiracleWindowManager>(),
                             launcher,
                             miral::AppendKeyboardEventFilter(keybinds),
-                            ConfigurationOption{run_startup_apps, "startup-app", "Commands to run on startup (may be specified multiple times)"},
                             miral::Decorations::prefer_csd()});
 }

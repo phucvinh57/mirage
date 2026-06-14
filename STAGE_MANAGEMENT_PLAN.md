@@ -8,13 +8,18 @@ The first version should prioritize a correct compositor-side state model and de
 
 ## References
 
-- Use `../mir` to read Mir and Miral source code and behavior.
-- Use `../Miriway` as the primary reference for compositor policy structure.
+- Use [canonical/mir](https://github.com/canonical/mir) to read Mir and Miral source code and behavior.
+- Use [Miriway/Miriway](https://github.com/Miriway/Miriway) as the primary reference for compositor policy structure.
 - Miriway references worth studying first:
-  - `../Miriway/miriway_policy.h`
-  - `../Miriway/miriway_policy.cpp`
-  - `../Miriway/miriway_workspace_manager.h`
-  - `../Miriway/miriway_workspace_manager.cpp`
+  - [`miriway_policy.h`](https://github.com/Miriway/Miriway/blob/main/miriway_policy.h)
+  - [`miriway_policy.cpp`](https://github.com/Miriway/Miriway/blob/main/miriway_policy.cpp)
+  - [`miriway_workspace_manager.h`](https://github.com/Miriway/Miriway/blob/main/miriway_workspace_manager.h)
+  - [`miriway_workspace_manager.cpp`](https://github.com/Miriway/Miriway/blob/main/miriway_workspace_manager.cpp)
+- Mir references worth studying first:
+  - [`basic_window_manager.cpp`](https://github.com/canonical/mir/blob/main/src/miral/basic_window_manager.cpp)
+  - [`floating_window_manager.cpp`](https://github.com/canonical/mir/blob/main/src/miral/floating_window_manager.cpp)
+  - [`floating_window_manager.h`](https://github.com/canonical/mir/blob/main/include/miral/miral/floating_window_manager.h)
+  - [`window_management_policy.h`](https://github.com/canonical/mir/blob/main/include/miral/miral/window_management_policy.h)
 
 ## Current State
 
@@ -22,12 +27,14 @@ The first version should prioritize a correct compositor-side state model and de
 
 Relevant local files:
 
-- `mirage_window_manager.h`
-- `mirage_window_manager.cpp`
-- `mirage_keybind.h`
-- `mirage_keybind.cc`
-- `mirage.cc`
-- `mirage.config`
+- [`window_manager.h`](https://github.com/phucvinh57/mirage/blob/main/window_manager.h)
+- [`window_manager.cc`](https://github.com/phucvinh57/mirage/blob/main/window_manager.cc)
+- [`stage_manager.h`](https://github.com/phucvinh57/mirage/blob/main/stage_manager.h)
+- [`stage_manager.cc`](https://github.com/phucvinh57/mirage/blob/main/stage_manager.cc)
+- [`mirage_keybind.h`](https://github.com/phucvinh57/mirage/blob/main/mirage_keybind.h)
+- [`mirage_keybind.cc`](https://github.com/phucvinh57/mirage/blob/main/mirage_keybind.cc)
+- [`mirage.cc`](https://github.com/phucvinh57/mirage/blob/main/mirage.cc)
+- [`mirage.config`](https://github.com/phucvinh57/mirage/blob/main/mirage.config)
 
 ## Implementation Plan
 
@@ -51,8 +58,8 @@ Defer:
 
 Add:
 
-- `mirage_stage_manager.h`
-- `mirage_stage_manager.cpp`
+- [`stage_manager.h`](https://github.com/phucvinh57/mirage/blob/main/stage_manager.h)
+- [`stage_manager.cc`](https://github.com/phucvinh57/mirage/blob/main/stage_manager.cc)
 
 Track:
 
@@ -61,7 +68,7 @@ Track:
 - per-window restore rectangle
 - whether a window is staged, active, hidden, suspended, fullscreen, maximized, or dialog-like
 
-Use Miriway's workspace code as a reference for per-window metadata. In particular, study how `WindowSpecification::userdata()` is initialized in `place_new_window()` and read from `WindowInfo`.
+Use Miriway's [`miriway_workspace_manager.h`](https://github.com/Miriway/Miriway/blob/main/miriway_workspace_manager.h) and [`miriway_workspace_manager.cpp`](https://github.com/Miriway/Miriway/blob/main/miriway_workspace_manager.cpp) as references for per-window metadata. In particular, study how `WindowSpecification::userdata()` is initialized in `place_new_window()` and read from `WindowInfo`.
 
 Exclude non-stageable windows:
 
@@ -125,7 +132,7 @@ Extend internal keybind handling so actions can call the window manager, not onl
 Add a small command bridge, similar in spirit to Miriway's `ShellCommands`, but much smaller:
 
 - `MirageCommands`
-- shared by `mirage.cc`, `KeybindConfig`, and `MirageWindowManager`
+- shared by [`mirage.cc`](https://github.com/phucvinh57/mirage/blob/main/mirage.cc), `KeybindConfig`, and `MirageWindowManager`
 
 Initial internal commands:
 
@@ -143,7 +150,7 @@ Possible later commands:
 
 ### 6. Wire Default Keybinds
 
-Update `mirage.config` with defaults such as:
+Update [`mirage.config`](https://github.com/phucvinh57/mirage/blob/main/mirage.config) with defaults such as:
 
 ```ini
 command_meta=Tab:@stage-next
@@ -182,6 +189,171 @@ On restored state:
 
 - reinsert the window into stage layout if stage mode is enabled
 
+### Window Lifecycle Execution Order
+
+These flows describe the current Miral execution order, with the planned `StageManager` mutations shown as the stage-management extension points. The current `StageManager::is_stageable()` stub returns `false`, so the stage-specific branches become active only after the stage model is implemented.
+
+#### New Window Open
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Mir as Mir BasicWindowManager
+    participant WM as mirage WM
+    participant Floating as Miral FloatingWindowManager
+    participant Stage as StageManager
+
+    Client->>Mir: create surface
+    Mir->>WM: place_new_window(app, request)
+    WM->>Floating: place_new_window(app, request)
+    Floating-->>WM: requested spec
+    WM-->>Mir: WindowSpecification
+
+    Mir->>Mir: build surface and WindowInfo
+    Mir->>Mir: add window to app, parent, workspace
+    Mir->>WM: advise_new_window(window_info)
+    WM->>Floating: advise_new_window(window_info)
+    Floating->>Floating: focus-stealing check
+    opt focus stealing prevented
+        Floating->>Mir: swap_tree_order(active, new_window)
+    end
+
+    WM->>Stage: is_stageable(window_info)
+    alt stageable
+        WM->>Stage: track(window)
+        WM->>Stage: make_current(window)
+        WM->>WM: relayout()
+    else not stageable
+        WM-->>Mir: leave unmanaged by stage layout
+    end
+
+    Client->>Mir: surface ready
+    Mir->>WM: handle_window_ready(window_info)
+    WM->>Floating: inherited handler
+    Floating->>Mir: select_active_window(window)
+    Mir->>WM: advise_focus_gained(window_info)
+```
+
+#### Resize Window
+
+Client-requested resize or modification:
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Mir as Mir BasicWindowManager
+    participant WM as mirage WM
+    participant Floating as Miral FloatingWindowManager
+    participant Surface as Scene Surface
+
+    Client->>Mir: modify_surface(size/top_left/state/etc)
+    Mir->>Mir: validate_modification_request()
+    Mir->>Mir: place_and_size_for_state()
+    Mir->>WM: handle_modify_window(window_info, mods)
+    WM->>Floating: handle_modify_window(window_info, mods)
+    Floating->>Mir: tools.modify_window(window_info, mods)
+
+    Mir->>Mir: constrain_resize if needed
+    Mir->>WM: advise_resize(window_info, new_size)
+    Mir->>Surface: resize(new_size)
+    Mir->>Mir: move_tree(delta)
+```
+
+Interactive pointer or touch resize:
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Mir as Mir BasicWindowManager
+    participant Floating as Miral FloatingWindowManager
+    participant Surface as Scene Surface
+
+    Client->>Mir: request resize(surface, input_event, edge)
+    Mir->>Floating: handle_request_resize(window_info, event, edge)
+    Floating->>Floating: begin_pointer_resize() or begin_touch_resize()
+    Floating->>Floating: prepare_for_gesture()
+    alt window is restored
+        Floating->>Floating: store gesture window, edge, position, size
+    else window is not restored
+        Floating-->>Mir: ignore resize gesture
+    end
+
+    loop pointer/touch motion
+        Mir->>Floating: handle_pointer_event() or handle_touch_event()
+        Floating->>Floating: apply_resize_by(delta)
+        Floating->>Mir: tools.modify_window(window, top_left + size)
+        Mir->>WM: advise_resize(window_info, new_size)
+        Mir->>Surface: resize(new_size)
+    end
+```
+
+#### Window Delete
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Mir as Mir BasicWindowManager
+    participant WM as mirage WM
+    participant Floating as Miral FloatingWindowManager
+    participant Stage as StageManager
+
+    Client->>Mir: destroy/remove surface
+    Mir->>Mir: remove_surface()
+    Mir->>Mir: remove_window()
+    Mir->>Mir: advise_removing_from_workspace()
+    Mir->>WM: advise_delete_window(window_info)
+    WM->>Floating: advise_delete_window(window_info)
+    Note over Floating: base implementation is no-op
+
+    WM->>Stage: untrack(window)
+    opt deleted window was current
+        WM->>Stage: promote nearest remaining staged window
+    end
+    WM->>WM: relayout()
+
+    Mir->>Mir: remove from app, MRU, fullscreen and attached sets
+    Mir->>Client: destroy_surface(window)
+    Mir->>Mir: erase WindowInfo
+    alt deleted window was active
+        Mir->>Mir: refocus(parent, shared workspace MRU, app MRU, fallback)
+        Mir->>WM: advise_focus_gained(new_focus)
+    end
+```
+
+#### Window Focus
+
+```mermaid
+sequenceDiagram
+    participant Input
+    participant Mir as Mir BasicWindowManager
+    participant WM as mirage WM
+    participant Floating as Miral FloatingWindowManager
+    participant Stage as StageManager
+
+    Input->>Mir: pointer button, raise, ready, or explicit select
+    Mir->>Mir: select_active_window(window)
+    Mir->>Mir: check focus mode, visibility, children/dialogs
+    Mir->>Mir: show or unminimize if needed
+    Mir->>Mir: mru_active_windows.push(window)
+    Mir->>Mir: focus_controller.set_focus_to(app, window)
+
+    alt previous window exists and differs
+        Mir->>WM: advise_focus_lost(prev_window)
+    end
+
+    Mir->>WM: advise_focus_gained(window_info)
+    WM->>Floating: advise_focus_gained(window_info)
+    Floating->>Mir: tools.raise_tree(window)
+
+    WM->>Stage: is_stageable(window_info)
+    alt stageable
+        WM->>Stage: make_current(window)
+        WM->>WM: relayout()
+    else not stageable
+        WM-->>Mir: keep current stage order
+    end
+```
+
 ### 8. Multi-Output Behavior
 
 First pass:
@@ -191,7 +363,7 @@ First pass:
 
 Second pass:
 
-- track `application_zones`, following Miriway's `miriway_policy.cpp`
+- track `application_zones`, following Miriway's [`miriway_policy.cpp`](https://github.com/Miriway/Miriway/blob/main/miriway_policy.cpp)
 - maintain separate stage sets per zone/output
 - assign windows by center point or output id
 

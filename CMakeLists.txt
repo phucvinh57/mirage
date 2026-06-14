@@ -11,7 +11,7 @@ add_executable(mirage
     mirage_config.cc
     mirage_keybind.cc
     stage_manager.cc
-    window_manager.cpp)
+    window_manager.cc)
 target_compile_definitions(mirage PRIVATE MIR_LOG_COMPONENT="mirage")
 
 find_program(CLANG_FORMAT clang-format)

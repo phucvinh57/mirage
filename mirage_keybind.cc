@@ -1,4 +1,4 @@
-#include "miracle_keybind.h"
+#include "mirage_keybind.h"
 
 #include <mir/log.h>
 #include <miral/external_client.h>
@@ -96,7 +96,7 @@ namespace
     }
 }
 
-void KeybindConfig::load(MiracleConfig *config)
+void KeybindConfig::load(MirageConfig *config)
 {
     this->keybinds.clear();
     for (auto const &[name, values] : config->search_prefix("command_"))

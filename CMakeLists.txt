@@ -1,23 +1,25 @@
 cmake_minimum_required(VERSION 3.16)
-project(demo-mir-compositor)
+project(mirage)
+
 set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(FindPkgConfig)
 pkg_check_modules(MIRAL miral REQUIRED IMPORTED_TARGET)
-add_executable(miracle
-    miracle.cc
-    miracle_config.cc
-    miracle_keybind.cc
-    miracle_window_manager.cpp)
-target_compile_definitions(miracle PRIVATE MIR_LOG_COMPONENT="miracle")
-set(MIRACLE_HOME_CONFIG "$ENV{HOME}/.config/miracle.config")
+add_executable(mirage
+    mirage.cc
+    mirage_config.cc
+    mirage_keybind.cc
+    mirage_window_manager.cpp)
+target_compile_definitions(mirage PRIVATE MIR_LOG_COMPONENT="mirage")
+set(MIRAGE_HOME_CONFIG "$ENV{HOME}/.config/mirage.config")
 add_custom_command(
-    OUTPUT "${MIRACLE_HOME_CONFIG}"
+    OUTPUT "${MIRAGE_HOME_CONFIG}"
     COMMAND ${CMAKE_COMMAND} -E make_directory "$ENV{HOME}/.config"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_SOURCE_DIR}/miracle.config"
-            "${MIRACLE_HOME_CONFIG}"
-    DEPENDS "${CMAKE_SOURCE_DIR}/miracle.config")
-add_custom_target(miracle-config DEPENDS "${MIRACLE_HOME_CONFIG}")
-add_dependencies(miracle miracle-config)
-target_link_libraries(miracle PkgConfig::MIRAL)
+            "${CMAKE_SOURCE_DIR}/mirage.config"
+            "${MIRAGE_HOME_CONFIG}"
+    DEPENDS "${CMAKE_SOURCE_DIR}/mirage.config")
+add_custom_target(mirage-config DEPENDS "${MIRAGE_HOME_CONFIG}")
+add_dependencies(mirage mirage-config)
+target_link_libraries(mirage PkgConfig::MIRAL)

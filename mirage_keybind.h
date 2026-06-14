@@ -1,5 +1,5 @@
-#ifndef __MIRACLE_KEYBIND_H__
-#define __MIRACLE_KEYBIND_H__
+#ifndef __MIRAGE_KEYBIND_H__
+#define __MIRAGE_KEYBIND_H__
 
 #include <optional>
 #include <string>
@@ -8,7 +8,7 @@
 #include <miral/toolkit_event.h>
 #include <xkbcommon/xkbcommon.h>
 
-#include "miracle_config.h"
+#include "mirage_config.h"
 
 namespace miral
 {
@@ -30,11 +30,11 @@ private:
     auto action_for(MirKeyboardEvent const *event) const -> std::optional<std::string>;
 
 public:
-    void load(MiracleConfig *config) override;
+    void load(MirageConfig *config) override;
     auto handle(
         MirKeyboardEvent const *event,
         miral::MirRunner &runner,
         miral::ExternalClientLauncher &launcher) const -> bool;
 };
 
-#endif // __MIRACLE_KEYBIND_H__
+#endif // __MIRAGE_KEYBIND_H__
